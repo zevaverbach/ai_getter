@@ -18,12 +18,21 @@ def make_fp_from_prompt(
     index: int | None = None,
 ) -> pl.Path:
     prompt_fn = (
-        prompt.replace(" ", "_")
+        prompt.replace(" ", "")
         .replace("'", "")
+        .replace('"', "")
         .replace(".", "")
         .replace(",", "")
+        .replace("<", "")
+        .replace(">", "")
+        .replace("\\", "")
+        .replace(";", "")
+        .replace("!", "")
+        .replace("{", "")
+        .replace("}", "")
+        .replace("/", "")
         .lower()
-    )[: 225 - len(str(save_path))]
+    )[: 100 - len(str(save_path))]
     if index is not None:
         prompt_fn = f"{prompt_fn}{index}"
     prompt_fn = f"{prompt_fn}-{dt.datetime.now()}"
