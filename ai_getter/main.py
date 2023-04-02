@@ -6,7 +6,6 @@ import time
 
 import openai
 import pyperclip
-from rich.pretty import pprint
 
 from .save import save_images_from_openai, upload_to_s3, save_output
 
@@ -46,15 +45,19 @@ def generate_images(prompt: str, num_images: int, save_path: pl.Path = SAVE_PATH
     if num_images > 10:
         raise ValueError("num_images must be <= 10")
     start = time.time()
+    print("Generating images...")
     res = openai.Image.create(prompt=prompt, n=num_images)  # type: ignore
+    print("Saving images...")
     file_paths = save_images_from_openai(prompt, res, save_path)  # type: ignore
     if save_to_s3:
         if S3_BUCKET is None:
             raise NoBucket("Please provide AI_GETTER_S3_BUCKET in .env")
-        for fp in file_paths:
+        print("Uploading images to S3...")
+        for idx, fp in enumerate(file_paths):
+            print(idx)
             upload_to_s3(bucket_name=S3_BUCKET, file_path=fp, key=fp, prompt=prompt, typ="image", vendor="openai")
     print(f"Time taken: {time.time() - start} seconds")
-    print(f"Cost: {OPENAI_DALE_COST_PER_IMAGE_IN_TENTHS_OF_A_CENT * num_images * 10} cents")
+    print(f"Cost: {OPENAI_DALE_COST_PER_IMAGE_IN_TENTHS_OF_A_CENT * num_images / 10} cents")
     return res  # type: ignore
 
 

@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="ai_getter",
-    version="0.0.1",
+    version="0.0.2",
     description="A CLI for publishing sites to Netlify and assigning custom domains to them.",
     author="Zev Averbach",
     author_email="zev@averba.ch",
@@ -21,7 +21,7 @@ setup(
     ],
     packages=["ai_getter"],
     include_package_data=True,
-    install_requires=["requests", "openai", "requests"],
+    install_requires=["requests", "openai", "pyperclip", "trans", "boto3"],
     python_requires=">=3.10",  # only because we're using | instead of typing.Union; otherwise >= 3.9
     url="https://github.com/zevaverbach/ai_getter",
     entry_points={"console_scripts": ["aig=ai_getter.main:main"]},

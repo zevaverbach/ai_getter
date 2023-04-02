@@ -39,7 +39,7 @@ def make_fp_from_prompt(
         prompt_fn = f"{prompt_fn}{index}"
     prompt_fn = f"{prompt_fn}-{dt.datetime.now()}"
     prompt_fn = f"{prompt_fn}.{ext}"
-    return save_path / prompt_fn
+    return save_path / prompt_fn.replace(" ", "")
 
 
 def save_images_from_openai(
@@ -90,7 +90,9 @@ def download_images(prompt: str, res: dict, save_path: pl.Path) -> list[str]:
     fns = []
     for idx, image_dict in enumerate(res["data"]):
         fn = make_fp_from_prompt(prompt, save_path, index=idx, ext="jpg")
-        download(image_dict["url"], fn)
+        url = image_dict["url"]
+        print(f"Downloading image from {url} to {fn}")
+        download(url, fn)
         fns.append(fn)
     return fns
 
