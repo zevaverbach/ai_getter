@@ -1,4 +1,3 @@
--e git+https://github.com/zevaverbach/ai_getter@bc472274f6f10c180daa9ee267247cb51ea4ea15#egg=ai_getter
 aiohttp==3.8.4
 aiosignal==1.3.1
 async-timeout==4.0.2

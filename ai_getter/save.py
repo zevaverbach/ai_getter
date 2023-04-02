@@ -1,8 +1,10 @@
 import datetime as dt
 import pathlib as pl
+import typing as t
 
 import boto3
 from requests import get
+import trans
 
 
 def save_output(prompt: str, content: str, save_path: pl.Path) -> pl.Path:
@@ -49,9 +51,39 @@ def save_images_from_openai(
     return file_paths
 
 
-def upload_to_s3(bucket_name: str, file_path: str, key: str):
+def transform_prompt_for_aws_metadata(prompt: str) -> str:
+    MAX_NUM_PYTHON_CHARS_IN_S3_METADATA = (
+        1849  # not sure why, but this is close to 1.9kb
+        # AWS's limit is supposedly 2kb
+    )
+    truncated = prompt[:MAX_NUM_PYTHON_CHARS_IN_S3_METADATA]
+    backslashes_removed = truncated.replace("\n", "").replace("\t", "")
+    return trans.trans(backslashes_removed)
+
+
+def upload_to_s3(
+    bucket_name: str,
+    file_path: str,
+    key: str,
+    prompt: str,
+    typ: t.Literal["image", "text"],
+    vendor: str,
+):
     s3c = boto3.client("s3")
-    s3c.upload_file(file_path, bucket_name, key)
+    transformed_prompt = transform_prompt_for_aws_metadata(prompt)
+    s3c.upload_file(
+        file_path,
+        bucket_name,
+        key,
+        ExtraArgs={
+            "Metadata": {
+                "prompt": transformed_prompt,
+                "date": str(dt.datetime.now()),
+                "type": typ,
+                "vendor": vendor,
+            }
+        },
+    )
 
 
 def download_images(prompt: str, res: dict, save_path: pl.Path) -> list[str]:

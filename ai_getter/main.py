@@ -2,6 +2,7 @@ import datetime as dt
 import os
 import pathlib as pl
 import sys
+import time
 
 import openai
 import pyperclip
@@ -15,11 +16,16 @@ openai.api_key = os.getenv("OPENAI_TOKEN")
 S3_BUCKET = os.getenv("AI_GETTER_S3_BUCKET")
 SAVE_PATH = pl.Path(os.getenv("AI_GETTER_SAVE_PATH") or os.path.expanduser("~"))
 
+OPENAI_GPT_3_5_TURBO_COST_PER_1K_TOKENS_IN_TENTHS_OF_A_CENT = 2
+OPENAI_DALE_COST_PER_IMAGE_IN_TENTHS_OF_A_CENT = 20
+
+
 class NoBucket(Exception):
     pass
 
 
 def chat(prompt: str, save_path: pl.Path = SAVE_PATH, save_to_s3: bool = False) -> str:
+    start = time.time()
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
@@ -29,22 +35,26 @@ def chat(prompt: str, save_path: pl.Path = SAVE_PATH, save_to_s3: bool = False) 
     if save_to_s3:
         if S3_BUCKET is None:
             raise NoBucket("Please provide AI_GETTER_S3_BUCKET in .env")
-        upload_to_s3(S3_BUCKET, str(fp), str(fp))
-    pprint(response)
+        upload_to_s3(bucket_name=S3_BUCKET, file_path=str(fp), key=str(fp), prompt=prompt, typ="text", vendor="openai")
+    total_tokens = response["usage"]["total_tokens"] # type: ignore
+    print(f"cost: {OPENAI_GPT_3_5_TURBO_COST_PER_1K_TOKENS_IN_TENTHS_OF_A_CENT * total_tokens * 10 / 1000} cents")
+    print(f"Time taken: {time.time() - start} seconds")
     return content # type: ignore
 
 
 def generate_images(prompt: str, num_images: int, save_path: pl.Path = SAVE_PATH, save_to_s3: bool = False) -> dict:
     if num_images > 10:
         raise ValueError("num_images must be <= 10")
+    start = time.time()
     res = openai.Image.create(prompt=prompt, n=num_images)  # type: ignore
     file_paths = save_images_from_openai(prompt, res, save_path)  # type: ignore
     if save_to_s3:
         if S3_BUCKET is None:
             raise NoBucket("Please provide AI_GETTER_S3_BUCKET in .env")
-        for idx, fp in enumerate(file_paths):
-            upload_to_s3(S3_BUCKET, fp, f"{prompt}-{dt.date.today()}-{idx}")
-    pprint(res)
+        for fp in file_paths:
+            upload_to_s3(bucket_name=S3_BUCKET, file_path=fp, key=fp, prompt=prompt, typ="image", vendor="openai")
+    print(f"Time taken: {time.time() - start} seconds")
+    print(f"Cost: {OPENAI_DALE_COST_PER_IMAGE_IN_TENTHS_OF_A_CENT * num_images * 10} cents")
     return res  # type: ignore
 
 
@@ -55,7 +65,8 @@ Usage:
    aig image <prompt> [--clip] --num-images <num_images> [--save-path <path>] [--s3]
    aig text <prompt> [--clip] [--save-path <path>] [--s3]
 
-   (--clip will get the prompt from your clipboard's contents)
+   (--clip will get the prompt from your clipboard's contents, in addition to <prompt> if you supply one)
+   (--s3 will upload the result to your AI_GETTER_S3_BUCKET)
     """)
 
 
