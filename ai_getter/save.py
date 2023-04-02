@@ -86,12 +86,12 @@ def upload_to_s3(
     )
 
 
-def download_images(prompt: str, res: dict, save_path: pl.Path) -> list[str]:
+def download_images(prompt: str, res: dict, save_path: pl.Path) -> list[pl.Path]:
     fns = []
     for idx, image_dict in enumerate(res["data"]):
         fn = make_fp_from_prompt(prompt, save_path, index=idx, ext="jpg")
         url = image_dict["url"]
-        print(f"Downloading image from {url} to {fn}")
+        print(f"Downloading image {idx + 1}")
         download(url, fn)
         fns.append(fn)
     return fns
